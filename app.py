@@ -1,4 +1,4 @@
-from flask import Flask, render_template, session, redirect, request
+from flask import Flask, render_template, session, redirect, request, flash
 from auth import auth_bp
 from warehouse_manager import warehouse_bp, load_warehouses
 import os
@@ -45,6 +45,10 @@ def optimize_route():
 
     source = warehouses[source_idx]
     destination = warehouses[dest_idx]
+
+    if source_idx == dest_idx:
+        flash("Source and Destination cannot be the same.", "danger")
+        return redirect('/dashboard')
 
     distance_km, duration_min = get_road_distance(
         source['location']['lat'], source['location']['lon'],
