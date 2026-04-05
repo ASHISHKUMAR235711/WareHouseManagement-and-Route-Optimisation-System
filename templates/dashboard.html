@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Welcome, {{ user }} ({{ role|capitalize }})</h2>
+        <div>
+          {% if role == 'admin' %}
+            <a href="/add-warehouse" class="btn" style="margin-right: 10px;">➕ Add Warehouse</a>
+          {% endif %}
+          <a href="/logout" class="btn btn-danger">Logout</a>
+        </div>
+      </div>
+
+    <h3> All Warehouses</h3>
+    {% if warehouses %}
+      <ul style="padding: 0;">
+        {% for w in warehouses %}
+          <li class="list-item">
+            <div>
+              <strong style="font-size: 1.1rem;">{{ w.name }}</strong> — <span style="color: var(--text-muted);">{{ w.city }}</span><br>
+              <small>Location: ({{ w.location.lat }}, {{ w.location.lon }})</small>
+            </div>
+             <a href="/warehouse/{{ loop.index0 }}" class="btn">Manage Items</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color: var(--text-muted); font-style: italic;">No warehouses added yet.</p>
+    {% endif %}
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="container">
+    <div class="card">
+      <h3>📊 Items per Warehouse</h3>
+      <canvas id="itemChart" width="600" height="300"></canvas>
+    </div>
+  </div>
+
+  {% if role == 'admin' and warehouses|length > 1 %}
+  <div class="container">
+    <div class="card">
+      <h3> Optimize Route Between Warehouses</h3>
+      <form method="POST" action="/optimize-route" style="display: flex; gap: 15px; align-items: flex-end;">
+        <div style="flex: 1;">
+          <label for="source">Source:</label>
+          <select name="source" required style="width: 100%;">
+            {% for w in warehouses %}
+              <option value="{{ loop.index0 }}">{{ w.name }} ({{ w.city }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="flex: 1;">
+          <label for="destination">Destination:</label>
+          <select name="destination" required style="width: 100%;">
+            {% for w in warehouses %}
+              <option value="{{ loop.index0 }}">{{ w.name }} ({{ w.city }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn" style="margin-bottom: 16px;">Find Shortest Route</button>
+      </form>
+
+      {% if route %}
+        <div class="info-box">
+          <h4>Optimized Route Info</h4>
+          <p><strong>From:</strong> {{ route.source }}</p>
+          <p><strong>To:</strong> {{ route.destination }}</p>
+          <p><strong>Distance:</strong> {{ route.distance_km }} km</p>
+          <p><strong>Estimated Duration:</strong> {{ route.duration_min }} minutes</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Leaflet Map Script -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    var map = L.map('map').setView([26.8467, 80.9462], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    {% for w in warehouses %}
+      var marker = L.marker([{{ w.location.lat }}, {{ w.location.lon }}]).addTo(map);
+      marker.bindPopup(
+        "<b>{{ w.name | escape }}</b><br>{{ w.city | escape }}<br>" +
+        "<a href='/warehouse/{{ loop.index0 }}'>Manage Items</a>"
+      );
+    {% endfor %}
+
+    {% if route %}
+      const source = [{{ route.source_lat }}, {{ route.source_lon }}];
+      const destination = [{{ route.destination_lat }}, {{ route.destination_lon }}];
+
+      fetch("https://api.openrouteservice.org/v2/directions/driving-car/geojson", {
+        method: "POST",
+        headers: {
+          "Authorization": "{{ ors_api_key }}",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          coordinates: [
+            [source[1], source[0]],
+            [destination[1], destination[0]]
+          ]
+        })
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("Route fetch failed");
+        return response.json();
+      })
+      .then(data => {
+        const routeLayer = L.geoJSON(data, {
+          style: { color: 'red', weight: 4 }
+        }).addTo(map);
+        map.fitBounds(routeLayer.getBounds());
+      })
+      .catch(err => {
+        console.error("Route fetch error:", err);
+      });
+    {% endif %}
+  </script>
+
+     <!-- Chart.js Script -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctx = document.getElementById('itemChart').getContext('2d');
+    const itemChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: {{ chart_labels | tojson }},
+        datasets: [{
+          label: 'Number of Items',
+          data: {{ chart_data | tojson }},
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

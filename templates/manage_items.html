@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Items - {{ warehouse.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <div class="card" style="margin-top: 40px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Items in {{ warehouse.name }} ({{ warehouse.city }})</h2>
+        <a href="/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h3>🔍 Search Items</h3>
+        <input type="text" id="searchInput" placeholder="Search item by name..." onkeyup="filterItems()">
+      </div>
+
+  {% if warehouse['items'] %}
+    <div style="margin-bottom: 15px;">
+      <button class="btn" onclick="exportToCSV()">📤 Export to CSV</button>
+    </div>
+    <ul id="itemList" style="padding: 0;">
+      {% for item in warehouse['items'] %}
+        <li class="list-item">
+          <div style="display: flex; align-items: center;">
+            {% if item.image %}
+              <img src="{{ item.image }}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 15px; border-radius: 6px;">
+            {% endif %}
+            <div>
+              <strong class="item-name" style="font-size: 1.1rem;">{{ item.name }}</strong><br>
+              <span style="color: var(--text-muted); font-size: 0.9rem;">Quantity: {{ item.quantity }}</span>
+              {% if item.quantity < 10 %}
+                <span class="badge low">Low</span>
+              {% elif item.quantity < 30 %}
+                <span class="badge medium">Medium</span>
+              {% else %}
+                <span class="badge high">High</span>
+              {% endif %}
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <a href="/warehouse/{{ wid }}/edit/{{ loop.index0 }}" class="btn" style="background-color: var(--warning-color);">Edit</a>
+            <a href="/warehouse/{{ wid }}/delete/{{ loop.index0 }}" class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+      <p style="color: var(--text-muted); font-style: italic;">No items in this warehouse yet.</p>
+    {% endif %}
+    </div>
+
+    <div class="card">
+      <h3>Add New Item</h3>
+      <form method="POST" enctype="multipart/form-data">
+        <label>Item Name:</label>
+        <input name="item" required>
+
+        <label>Quantity:</label>
+        <input name="quantity" type="number" min="1" required>
+
+        <label>Image File (optional):</label>
+        <input type="file" name="image_file" accept="image/*">
+
+        <label>Or Image URL (optional):</label>
+        <input name="image_url" type="url">
+
+        <br>
+        <button type="submit" class="btn" style="margin-top: 10px;">Add Item</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function filterItems() {
+      const input = document.getElementById('searchInput');
+      const filter = input.value.toLowerCase();
+      const list = document.getElementById('itemList');
+      const items = list.getElementsByTagName('li');
+
+      for (let i = 0; i < items.length; i++) {
+        const name = items[i].getElementsByClassName('item-name')[0];
+        if (name.innerText.toLowerCase().includes(filter)) {
+          items[i].style.display = '';
+        } else {
+          items[i].style.display = 'none';
+        }
+      }
+    }
+
+    function exportToCSV() {
+      let csv = "Item Name,Quantity\n";
+      const items = document.querySelectorAll("#itemList li");
+      items.forEach(item => {
+        const name = item.querySelector(".item-name").innerText;
+        const qtyText = item.innerText.match(/Quantity:\s*(\d+)/);
+        const qty = qtyText ? qtyText[1] : 0;
+        csv += `"${name}",${qty}\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.setAttribute("href", URL.createObjectURL(blob));
+      link.setAttribute("download", "warehouse_items.csv");
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>

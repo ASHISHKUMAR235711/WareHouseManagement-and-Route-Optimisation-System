@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Item</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container" style="max-width: 600px; margin-top: 40px;">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <h2>Edit Item</h2>
+      <a href="/warehouse/{{ wid }}" style="display: block; margin-bottom: 20px;">← Back to Items</a>
+
+      <form method="POST" enctype="multipart/form-data">
+        <label>Item Name:</label>
+        <input name="item" value="{{ item.name }}" required>
+
+        <label>Quantity:</label>
+        <input name="quantity" type="number" min="1" value="{{ item.quantity }}" required>
+
+        <label>Image File (optional):</label>
+        <input type="file" name="image_file" accept="image/*">
+
+        <label>Or Image URL (optional):</label>
+        <input name="image_url" type="url" value="{{ item.image }}">
+
+        <button type="submit" class="btn" style="margin-top: 15px;">Update Item</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

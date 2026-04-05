@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add Warehouse</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container" style="max-width: 600px; margin-top: 40px;">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <h2>Add New Warehouse</h2>
+      <a href="/dashboard" style="display: block; margin-bottom: 20px;">← Back to Dashboard</a>
+      
+      <form method="POST">
+        <label>Warehouse Name:</label>
+        <input name="name" required placeholder="e.g. Central Hub">
+
+        <label>City:</label>
+        <input name="city" required placeholder="e.g. New York">
+
+        <label>Latitude:</label>
+        <input name="lat" step="any" required placeholder="e.g. 40.7128">
+
+        <label>Longitude:</label>
+        <input name="lon" step="any" required placeholder="e.g. -74.0060">
+
+        <button type="submit" class="btn" style="margin-top: 15px;">Add Warehouse</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
